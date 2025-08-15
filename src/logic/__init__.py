@@ -1,0 +1,1 @@
+from .calculate_weekly_scores import calculate_weekly_scores

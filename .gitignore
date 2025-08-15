@@ -2,3 +2,5 @@ data
 docs
 notebooks
 **__pycache__
+**temp.py
+**.vscode

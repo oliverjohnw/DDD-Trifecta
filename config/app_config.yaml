@@ -1,4 +1,31 @@
 data:
-  schedule:
+  games:
     sheet_id: "1LXvJYORhqsdyRn0xVHekkzXFAs_S0QAEqa_wgxAwMzo"
     gid: "1592942297"
+  picks:
+    sheet_id: "15lYijATXGXwfQSFgm22b_lSUGNKtcW7uNK_TyQJgBew"
+    gid: 
+      week1: "1315040899"
+      week2: "765393201"
+      week3: "765393201"
+      week4: "765393201"
+      week5: "765393201"
+      week6: "765393201"
+      week7: "765393201"
+      week8: "765393201"
+      week9: "765393201"
+      week10: "765393201"
+      week11: "765393201"
+      week12: "765393201"
+      week13: "765393201"
+      week14: "765393201"
+      week15: "765393201"
+      week16: "765393201"
+      week17: "765393201"
+      weel8: "765393201"
+
+output:
+  weekly_scores:
+
+config:
+  logos: "config/logos.yaml"

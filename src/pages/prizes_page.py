@@ -107,4 +107,4 @@ def prizes_page():
         st.markdown("### Breakdown")
         st.dataframe(breakdown, use_container_width=True, hide_index=True)
 
-    st.caption("All values are placeholders. Replace constants with your data source when ready.")
+    st.caption("All values are placeholders. Replace constants with  data source when ready.")

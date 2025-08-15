@@ -66,11 +66,15 @@ def rules_page():
                     <li>1 “confident” pick worth <b>2 points</b></li>
                   </ul>
                 </li>
+                <li>🏁 <b>1 Email picks to <i>dddtrifecta@gmail.com</i>.</li>
               </ul>
               <div class="hr"></div>
               <span class="cap">Deadline</span><br/>
-              Picks must be submitted at least <b>1 hour</b> before each game’s kickoff.
+              Picks must be submitted at least <b>1 hour</b> before kickoff of the first game the player has selected.
               Already‑started games are ineligible.
+
+              For example, if the player is planning to use a Thursday Night Football game in their picks,
+              they must supply <b>ALL</b> picks 1 hour prior to kickoff on Thursday night.
             </div>
             """,
             unsafe_allow_html=True,
@@ -135,10 +139,7 @@ def rules_page():
     with st.expander("Helpful Notes"):
         st.markdown(
             """
-            - You can’t pick a survivor team that you’ve already used earlier in the season.  
-            - Picks for any game must be in ≥ 1 hour before that game’s kickoff.  
-            - If a game is already underway or completed, it’s not eligible for picks.  
+            - Email picks to dddtrifecta@gmail.com. 
+            - For any additional question please reach out to @Edub1321 or @MrTuxedo on the Discord.  
             """
         )
-
-    st.caption("This page is a template. Update copy here anytime as rules evolve.")
