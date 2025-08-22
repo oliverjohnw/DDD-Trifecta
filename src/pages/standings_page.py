@@ -1,90 +1,200 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
-# =========================
-# Sample data (replace later)
-# =========================
-np.random.seed(42)
+def standings_page(app_config: dict):
+    """
+    Displays standings.
+    
+    Standings are broken into the following subsections:
+        * Overall
+        * Weeks 1-6
+        * Weeks 7-12
+        * Weeks 13-18
+        
+    And there is a special tab for the Special Prize.
+    """
+    # styling
+    _inject_css()
 
-PLAYERS = ["Mr_Tuxedo", "Edub1321", "OtherDDDMember", "JordanLoveMVP", "DataDawg"]
-WEEKS = list(range(1, 19))
-SAMPLE_POINTS = [0.0, 0.5, 1.0, 2.0]
+    # load players
+    sheet_id = app_config["data"]["picks"]["sheet_id"]
+    gid = app_config["data"]["picks"]["gid"][f"player_pool"]
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    player_pool = pd.read_csv(url)
+    players = player_pool["Players"]
 
-_records = [{"Player": p, "Week": w, "Total Points": np.random.choice(SAMPLE_POINTS)}
-            for p in PLAYERS for w in WEEKS]
-SCORES_LONG = pd.DataFrame(_records)
+    # player scores path
+    weekly_scores_folder = Path(app_config["output"]["weekly_scores_folder"])
+
+    # overall scores
+    overall_scores = pd.DataFrame()
+
+    # load scores
+    for week in range(1,19):
+
+        # attempt to load scores
+        try:
+            score_data = pd.read_csv(weekly_scores_folder / f"week_{week}_scores.csv")
+            score_data = score_data.loc[:, ["Player", "Week", "Total Points", "Special"]]
+
+        # if scores haven't happened yet, make blank dataset with 0's
+        except:
+            score_data = pd.DataFrame({"Player": players, "Week": week, "Total Points": 0, "Special": 0})
+
+        # combine to overall scores
+        overall_scores = pd.concat([overall_scores, score_data], axis = 0)
+
+    # calculate points
+    overall_points = _calculate_points(overall_scores, "all")
+    first_period_points = _calculate_points(overall_scores, "first")
+    second_period_points = _calculate_points(overall_scores, "second")
+    third_period_points = _calculate_points(overall_scores, "third")
+
+    # calculate special prize winners
+    special_prize_winners = _calculate_special(overall_scores)
+
+    # formatting
+    left, mid, right = st.columns([0.35, 0.9, 0.35])
+    with mid:
+        st.title("Standings")
+        
+        # define tabs
+        overall, period_one, period_two, period_three, special_prize = st.tabs(
+            ["Overall", "Weeks 1-6", "Weeks 7-12", "Weeks 13-18", "Special Prize"]
+        )
+
+        # display
+        with overall:
+            html = _style_table(overall_points, numeric_cols=["Overall"], table_class="standings")
+            st.markdown(html, unsafe_allow_html=True)
+
+        with period_one:
+            html = _style_table(first_period_points, numeric_cols=["Weeks 1-6"], table_class="standings")
+            st.markdown(html, unsafe_allow_html=True)
+
+        with period_two:
+            html = _style_table(second_period_points, numeric_cols=["Weeks 7-12"], table_class="standings")
+            st.markdown(html, unsafe_allow_html=True)
+
+        with period_three:
+            html = _style_table(third_period_points, numeric_cols=["Weeks 13-18"], table_class="standings")
+            st.markdown(html, unsafe_allow_html=True)
+
+        with special_prize:
+            if not special_prize_winners:
+                st.header("No winners yet!")
+            else:
+                st.header(f"Special prize winners:")
+                for winner in special_prize_winners:
+                    st.write(f" - {winner}")
+
+    return
 
 
-# =========================
-# Compute helpers
-# =========================
-def compute_overall(weekly_long: pd.DataFrame) -> pd.DataFrame:
-    df = (weekly_long.groupby("Player", as_index=False)["Total Points"]
-          .sum()
-          .rename(columns={"Total Points": "Season Points"})
-          .sort_values("Season Points", ascending=False))
-    df["Rank"] = df["Season Points"].rank(method="dense", ascending=False).astype(int)
-    df = df[["Rank", "Player", "Season Points"]].sort_values(["Rank", "Player"])
-    return df
+def _calculate_special(overall_scores: pd.DataFrame):
+    """
+    Displays all players who score a 6 on the spread picks and a 0 for survivor.
+    """
+    # filter 
+    special_winners = overall_scores.loc[overall_scores["Special"] == 1, "Player"]
+    
+    # unique winners
+    unique_winners = set(special_winners)
 
-def compute_window(weekly_long: pd.DataFrame, start_wk: int, end_wk: int, label: str) -> pd.DataFrame:
-    m = (weekly_long["Week"].between(start_wk, end_wk))
-    df = (weekly_long.loc[m].groupby("Player", as_index=False)["Total Points"].sum()
-          .rename(columns={"Total Points": label})
-          .sort_values(label, ascending=False))
-    df["Rank"] = df[label].rank(method="dense", ascending=False).astype(int)
-    return df[["Rank", "Player", label]].sort_values(["Rank", "Player"])
-
-def pivot_weekly(weekly_long: pd.DataFrame) -> pd.DataFrame:
-    p = (weekly_long.pivot_table(index="Player", columns="Week",
-                                 values="Total Points", aggfunc="sum", fill_value=0.0)
-         .reindex(sorted(WEEKS), axis=1)
-         .reset_index())
-    p.columns = ["Player"] + [f"W{w}" for w in WEEKS]
-    return p
+    return unique_winners
 
 
-# =========================
-# HTML/CSS render helpers
-# =========================
-def _rank_badge(val: int) -> str:
-    return f"<span class='badge badge-rank'>#{int(val)}</span>"
 
-def _fmt_pts(val: float) -> str:
-    return f"{val:.1f}"
+def _calculate_points(
+    overall_scores: pd.DataFrame,
+    term: str
+):
+    """
+    Filters data by term, then calculates scores.
+    """
+    # make data copy
+    temp_scores = overall_scores.copy()
 
-def _style_table(df: pd.DataFrame, *, numeric_cols: list[str], table_class: str) -> str:
-    """Return safe HTML for a styled table. Uses HTML badges for Rank."""
-    # Convert numeric-cols to strings while preserving alignment via CSS
-    render = df.copy()
+    # define time period
+    if term == "all":
+        start_week = 1
+        end_week = 18
+        label = "Overall"
+    elif term == "first":
+        start_week = 1
+        end_week = 6
+        label = "Weeks 1-6"
+    elif term == "second":
+        start_week = 7
+        end_week = 12
+        label = "Weeks 7-12"
+    elif term == "third":
+        start_week = 13
+        end_week = 18
+        label = "Weeks 13-18"
 
-    # Rank -> badge HTML
-    if "Rank" in render.columns:
-        render["Rank"] = render["Rank"].map(_rank_badge)
+    # filter dates
+    temp_scores = temp_scores.loc[
+        (temp_scores["Week"] >= start_week) & (temp_scores["Week"] <= end_week),
+        :
+        ]
+    
+    # coerce for pushes
+    temp_scores["Total Points"] = pd.to_numeric(temp_scores["Total Points"], errors="coerce").fillna(0.0)
+    
+    # calculate scores
+    scores = (
+        temp_scores.groupby("Player", as_index=False)["Total Points"]
+        .sum()
+        .rename(columns={"Total Points": label})
+        .sort_values(label, ascending=False)
+    )
 
-    # Format numeric columns (e.g., Season Points, W1-6 Points, etc.)
-    for c in numeric_cols:
-        if c in render.columns:
-            render[c] = render[c].astype(float).map(_fmt_pts)
+    # add rank
+    scores["Rank"] = scores[label].rank(method="dense", ascending=False).astype(int)
+    scores = scores[["Rank", "Player", label]].sort_values(["Rank", "Player"])
 
-    # Build a Styler to handle basic spacing/headers and to avoid escaping our HTML badges
-    sty = (render.style
-           .hide(axis="index")
-           .set_table_styles([
-               {"selector": "th", "props": [("text-align", "left"), ("font-weight", "700"), ("padding", "8px 10px")]},
-               {"selector": "td", "props": [("padding", "8px 10px"), ("vertical-align", "middle")]}
-           ]))
-
-    # IMPORTANT: escape=False to keep our badge <span> intact
-    html = sty.to_html(escape=False)
-
-    # Wrap in our class for CSS targeting
-    return f"<div class='{table_class}'>{html}</div>"
+    return scores
 
 def _inject_css():
     st.markdown("""
     <style>
+    /* Default badge */
+    .badge-rank {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 15px;
+        line-height: 1.1;
+        white-space: nowrap;
+        background: rgba(0, 200, 255, 0.18);
+        border: 1px solid rgba(0, 200, 255, 0.35);
+    }
+
+    /* Rank-specific styles */
+    .badge-rank.gold {
+        background: gold;
+        border: 1px solid goldenrod;
+        color: black;
+        font-weight: 700;
+    }
+    .badge-rank.silver {
+        background: silver;
+        border: 1px solid gray;
+        color: black;
+        font-weight: 700;
+    }
+    .badge-rank.bronze {
+        background: peru;
+        border: 1px solid saddlebrown;
+        color: white;
+        font-weight: 700;
+    }
+                
+
+
     /* Generic table shell */
     .standings table {
         width: 100%;
@@ -166,43 +276,40 @@ def _inject_css():
     </style>
     """, unsafe_allow_html=True)
 
+def _rank_badge(val: int) -> str:
+    if val == 1:
+        cls = "badge-rank gold"
+    elif val == 2:
+        cls = "badge-rank silver"
+    elif val == 3:
+        cls = "badge-rank bronze"
+    else:
+        cls = "badge-rank"
+    return f"<span class='{cls}'>#{int(val)}</span>"
 
-# =========================
-# Page (HTML/CSS rendering)
-# =========================
-def standings_page(_: dict | None = None):
+def _fmt_pts(val: float) -> str:
+    return f"{val:.1f}"
+
+def _style_table(df: pd.DataFrame, *, numeric_cols: list[str], table_class: str) -> str:
     """
-    Standings page.
+    Return safe HTML for a styled table (works with your CSS).
+    Renders Rank as a badge and formats numeric columns to 1 decimal.
     """
-    # page centering
-    left, mid, right = st.columns([0.35, 0.9, 0.35])
-    _inject_css()
+    render = df.copy()
 
-    overall = compute_overall(SCORES_LONG)
-    w1_6   = compute_window(SCORES_LONG, 1, 6,  "W1-6 Points")
-    w7_12  = compute_window(SCORES_LONG, 7, 12, "W7-12 Points")
-    w13_18 = compute_window(SCORES_LONG, 13, 18, "W13-18 Points")
-    weekly = pivot_weekly(SCORES_LONG)
+    if "Rank" in render.columns:
+        render["Rank"] = render["Rank"].map(_rank_badge)
 
-    with mid:
-        st.title("Standings")
+    for c in numeric_cols:
+        if c in render.columns:
+            render[c] = render[c].astype(float).map(_fmt_pts)
 
-        tab1, tab2, tab3, tab4 = st.tabs(
-            ["Overall", "Weeks 1-6", "Weeks 7-12", "Weeks 13-18"]
-        )
+    sty = (render.style
+           .hide(axis="index")
+           .set_table_styles([
+               {"selector": "th", "props": [("text-align", "left"), ("font-weight", "700"), ("padding", "8px 10px")]},
+               {"selector": "td", "props": [("padding", "8px 10px"), ("vertical-align", "middle")]}
+           ]))
 
-        with tab1:
-            html = _style_table(overall, numeric_cols=["Season Points"], table_class="standings")
-            st.markdown(html, unsafe_allow_html=True)
-
-        with tab2:
-            html = _style_table(w1_6, numeric_cols=["W1-6 Points"], table_class="standings")
-            st.markdown(html, unsafe_allow_html=True)
-
-        with tab3:
-            html = _style_table(w7_12, numeric_cols=["W7-12 Points"], table_class="standings")
-            st.markdown(html, unsafe_allow_html=True)
-
-        with tab4:
-            html = _style_table(w13_18, numeric_cols=["W13-18 Points"], table_class="standings")
-            st.markdown(html, unsafe_allow_html=True)
+    html = sty.to_html(escape=False)
+    return f"<div class='{table_class}'>{html}</div>"

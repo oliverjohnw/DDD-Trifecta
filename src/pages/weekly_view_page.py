@@ -10,7 +10,7 @@ def weekly_view_page(app_config: dict):
     Displays weekly matchups in a clean, compact table (no scroll box).
     """
     # page centering
-    left, mid, right = st.columns([0.35, 0.7, 0.35])
+    left, mid, right = st.columns([0.35, 0.85, 0.35])
 
     # determine which week
     current_week = calculate_week()

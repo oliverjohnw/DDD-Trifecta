@@ -1,102 +1,184 @@
+import argparse
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 # local imports
 from src.utils import load_yaml, calculate_week
 
+# GLOBAL VARIABLES
+app_config_path = "config/app_config.yaml"
+app_config = load_yaml(app_config_path)
+
+def parse_args() -> argparse.Namespace:
+    """Function to parse command line arguments"""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--week', type=str, help='Week to calculate scores for')
+    args = parser.parse_args()
+
+    return args
+
 def main():
     """
-    Updates scores when executed.
-    My vision is to run this, or schedule this to run, every Tuesday morning.
-    Therefore, it should be run on the week before current week.
+    Script that will calculate scores for a week that is specified by the user.
+    Script will error out if:
+        * Weekly scores have already been calculated.
+        * The selected week has not occured yet.
     """
+    # script arguments
+    args = parse_args()
+
     # determine current week
     current_week = calculate_week()
-    #### TEMP CODE TO TEST
-    current_week = 2
-    previous_week = current_week - 1
-    print(f"Calculating scores for week: {current_week - 1}")
 
-    # load in app config
-    app_config_path = "config/app_config.yaml"
-    app_config = load_yaml(app_config_path)
+    # # throw error if user-selected week is greater than or equal to current week
+    # if int(args.week) >= current_week:
+    #     raise RuntimeError("Error: Games for this week have not finished yet.")
+    
+    # determine save path
+    output_folder = app_config["output"]["weekly_scores_folder"]
+    output_path = Path(output_folder) / f"week_{args.week}_scores.csv"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # load in picks
+    # throw error if file exists
+    if output_path.exists():
+        raise FileExistsError(f"File already exists: {output_path}")
+    
+    # load in picks for the week
     sheet_id = app_config["data"]["picks"]["sheet_id"]
-    picks_data = dict()
-    for i in range(1, 17):
-        gid = app_config["data"]["picks"]["gid"][f"week{i}"]
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-        data = pd.read_csv(url)
-        picks_data[f"Week {i}"] = data
+    gid = app_config["data"]["picks"]["gid"][f"week{args.week}"]
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    weekly_picks = pd.read_csv(url)
 
-    # load in scores
+    # load in scores for week
     sheet_id = app_config["data"]["games"]["sheet_id"]
     gid = app_config["data"]["games"]["gid"] 
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-    scores_data = pd.read_csv(url)
+    outcome_data = pd.read_csv(url)
+    weekly_outcomes = outcome_data.loc[outcome_data["Week"] == int(args.week), :]
 
-    # trim anything that is NA
-    scores_data = scores_data.dropna(axis = 0)
+    # calculate game + spread winners in games
+    weekly_outcomes = _determine_game_winners(weekly_outcomes)
+    
+    # calculate score for week
+    weekly_scores = _calculate_weekly_scores(weekly_picks, weekly_outcomes, args.week)
 
-    # calculate game winner and spread winner
-    scores_data["Game Winner"] = np.where(
-        scores_data["Home Score"] == scores_data["Away Score"],
-        "Tie",
-        np.where(
-            scores_data["Home Score"] > scores_data["Away Score"],
-            scores_data["Home Team"],
-            scores_data["Away Team"],
-        ),
-    )
-    scores_data["Spread Winner"] = np.where(
-        (scores_data["Home Score"] + scores_data["Home Spread"]) == scores_data["Away Score"],
-        "Push",
-        np.where(
-            (scores_data["Home Score"] + scores_data["Home Spread"]) > scores_data["Away Score"],
-            scores_data["Home Team"],
-            scores_data["Away Team"],
-        ),
-    )
+    # save data
+    weekly_scores.to_csv(output_path, index = False)
 
-    # filter to previous week
-    weekly_picks = picks_data[f"Week {previous_week}"]
-    scores_data = scores_data.loc[scores_data["Week"] == previous_week, :]
+    return
 
+def _calculate_weekly_scores(
+    weekly_picks: pd.DataFrame,
+    weekly_outcomes: pd.DataFrame,
+    week: str
+):
+    """
+    Calculates weekly score given the picks and outcomes of each game.
+    """
     # determine points for survivor
-    weekly_picks["Survivor Points"] = weekly_picks["Survivor Pick"].isin(scores_data["Game Winner"]).astype(int)
+    weekly_picks["Survivor Point"] = weekly_picks["Survivor Pick"].isin(weekly_outcomes["Game Winner"]).astype(int)
 
     # determine points for spread
     rows = []
-    for _, r in scores_data.iterrows():
-        home, away, sw = r["Home Team"], r["Away Team"], r["Spread Winner"]
+    for _, r in weekly_outcomes.iterrows():
+        home_team, away_team, spread_winner = r["Home Team"], r["Away Team"], r["Spread Winner"]
 
-        if isinstance(sw, str) and sw.strip().lower() == "push":
-            rows.append({"Team": home, "base": 0.5})
-            rows.append({"Team": away, "base": 0.5})
+        # pushes are worth 0.5x for both teams
+        if isinstance(spread_winner, str) and spread_winner.strip().lower() == "push":
+            rows.append({"Team": home_team, "base": 0.5})
+            rows.append({"Team": away_team, "base": 0.5})
         else:
             # winner gets 1.0, the other team gets 0.0
-            rows.append({"Team": sw, "base": 1.0})
-            other = away if sw == home else home
-            rows.append({"Team": other, "base": 0.0})
+            rows.append({"Team": spread_winner, "base": 1.0})
+            spread_loser = away_team if spread_winner == home_team else home_team
+            rows.append({"Team": spread_loser, "base": 0.0})
 
+    # map into dataframe
     team_base = pd.DataFrame(rows)
     base_map = team_base.set_index("Team")["base"]
 
-    p = weekly_picks.copy()
+    # copy dataframe
+    points_data = weekly_picks.copy()
 
+    # applies mapping from above with custom scale
     def score_col(df, col, weight):
         return df[col].map(base_map).fillna(0).mul(weight)
     
-    p["2 Point Spread Points"] = score_col(p, "2 Point Spread", 2)
-    p["1 Point Spread (1) Points"] = score_col(p, "1 Point Spread (1)", 1)
-    p["1 Point Spread (2) Points"] = score_col(p, "1 Point Spread (2)", 1)
-    p["1 Point Spread (3) Points"] = score_col(p, "1 Point Spread (3)", 1)
-    p["1 Point Spread (4) Points"] = score_col(p, "1 Point Spread (4)", 1)
-    p["Player"] = weekly_picks["Player"]
-    p = p.loc[:, ["Player", "Survivor Points", "1 Point Spread (1) Points", "1 Point Spread (2) Points", "1 Point Spread (3) Points", "1 Point Spread (4) Points"]]
+    # calculate 2 point spread (worth two points)
+    points_data["2 Point Spread Points"] = score_col(points_data, "2 Point Spread", 2)
 
+    # calculate 1 point spread (worth one point)
+    points_data["1 Point Spread (1) Points"] = score_col(points_data, "1 Point Spread (1)", 1)
+    points_data["1 Point Spread (2) Points"] = score_col(points_data, "1 Point Spread (2)", 1)
+    points_data["1 Point Spread (3) Points"] = score_col(points_data, "1 Point Spread (3)", 1)
+    points_data["1 Point Spread (4) Points"] = score_col(points_data, "1 Point Spread (4)", 1)
+
+    # total points
+    points_data["Total Points"] = points_data["Survivor Point"] * (
+        points_data["2 Point Spread Points"] + 
+        points_data["1 Point Spread (1) Points"] + 
+        points_data["1 Point Spread (2) Points"] +
+        points_data["1 Point Spread (3) Points"] +
+        points_data["1 Point Spread (4) Points"]
+        ) 
     
+    # add special prize calculation
+    spread_cols = [
+        "2 Point Spread Points",
+        "1 Point Spread (1) Points",
+        "1 Point Spread (2) Points",
+        "1 Point Spread (3) Points",
+        "1 Point Spread (4) Points",
+    ]
+    points_data["Special"] = (
+        (points_data["Survivor Point"].eq(0)) &
+        (points_data[spread_cols].sum(axis=1).eq(6))
+    ).astype(int)
+
+    # add week
+    points_data["Week"] = week
+
+    return points_data
+
+def _determine_game_winners(
+    weekly_outcomes: pd.DataFrame
+):
+    """
+    For each game in the dataframe, this function will determine
+    which team won, and which team covered the spread.
+
+    The following columns are added:
+        * Game Winner
+        * Spread Winner
+    
+    NOTE: Ties and pushes are included.
+    """
+    # calculate game winner
+    # NOTE: Ties are included.
+    weekly_outcomes["Game Winner"] = np.where(
+        weekly_outcomes["Home Score"] == weekly_outcomes["Away Score"],
+        "Tie",
+        np.where(
+            weekly_outcomes["Home Score"] > weekly_outcomes["Away Score"],
+            weekly_outcomes["Home Team"],
+            weekly_outcomes["Away Team"],
+        ),
+    )
+    # calculate spread winner
+    # NOTE: Pushes are included
+    weekly_outcomes["Spread Winner"] = np.where(
+        (weekly_outcomes["Home Score"] + weekly_outcomes["Home Spread"]) == weekly_outcomes["Away Score"],
+        "Push",
+        np.where(
+            (weekly_outcomes["Home Score"] + weekly_outcomes["Home Spread"]) > weekly_outcomes["Away Score"],
+            weekly_outcomes["Home Team"],
+            weekly_outcomes["Away Team"],
+        ),
+    )
+
+    return weekly_outcomes
 
 
 if __name__ == "__main__":

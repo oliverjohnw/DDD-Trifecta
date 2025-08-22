@@ -5,6 +5,7 @@ data:
   picks:
     sheet_id: "15lYijATXGXwfQSFgm22b_lSUGNKtcW7uNK_TyQJgBew"
     gid: 
+      player_pool: "917772910"
       week1: "1315040899"
       week2: "765393201"
       week3: "765393201"
@@ -25,7 +26,7 @@ data:
       weel8: "765393201"
 
 output:
-  weekly_scores:
+  weekly_scores_folder: "artifacts/weekly_scores"
 
 config:
   logos: "config/logos.yaml"
