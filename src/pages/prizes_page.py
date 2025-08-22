@@ -1,25 +1,78 @@
-# src/pages/prizes.py
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# ----------------------------
-# Constants (replace later)
-# ----------------------------
-NUM_PLAYERS = 28
+# GLOBAL VARIABLES - DETERMINED VIA RULES
 BUY_IN = 100
-TOTAL_POT = NUM_PLAYERS * BUY_IN
+PCT_OVERALL = 0.75
+PCT_TRIMESTER = 0.05
+PCT_SPECIAL = 0.10 
 
-PCT_OVERALL = 0.75     # Season overall (1st/2nd/3rd)
-PCT_TRIMESTER = 0.05   # Each trimester (Weeks 1–6, 7–12, 13–18)
-PCT_SPECIAL = 0.10     # Temporary / special prize pool
+def prizes_page(app_config: dict):
+    _inject_css()
+    st.title("Prizes")
 
-PER_TRIMESTER_POT = TOTAL_POT * PCT_TRIMESTER
-SPECIAL_POT = TOTAL_POT * PCT_SPECIAL
+    # load player pool
+    sheet_id = app_config["data"]["picks"]["sheet_id"]
+    gid = app_config["data"]["picks"]["gid"][f"player_pool"]
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    player_pool = pd.read_csv(url)
+    players = player_pool["Players"]
 
-# ----------------------------
-# Small helpers (local-only)
-# ----------------------------
+    # calculate numbers
+    num_players = len(players)
+    total_pot = num_players * 100
+    per_trimester_pot = total_pot * 0.05
+    special_pot = total_pot * 0.10
+
+    # KPI Row
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: _kpi("Number of Players", f"{num_players}")
+    with c2: _kpi("Total Prize Pot", f"${total_pot:,.0f}")
+    with c3: _kpi("Trimester Prize (each)", f"${per_trimester_pot:,.0f}")
+    with c4: _kpi("Special Prize Pot", f"${special_pot:,.0f}")
+
+    st.divider()
+
+    # Donut + Breakdown
+    left, right = st.columns([1, 1])
+    with left:
+        labels = [
+            f"Season Overall ({int(PCT_OVERALL*100)}%)",
+            f"Trimester 1 ({int(PCT_TRIMESTER*100)}%)",
+            f"Trimester 2 ({int(PCT_TRIMESTER*100)}%)",
+            f"Trimester 3 ({int(PCT_TRIMESTER*100)}%)",
+            f"Special ({int(PCT_SPECIAL*100)}%)",
+        ]
+        values = [
+            total_pot * PCT_OVERALL,
+            per_trimester_pot,
+            per_trimester_pot,
+            per_trimester_pot,
+            special_pot,
+        ]
+        _donut_chart(labels, values, title="Prize Distribution")
+
+    with right:
+        breakdown = pd.DataFrame(
+            {
+                "Bucket": [
+                    "Season Overall (Top 3)",
+                    "Trimester 1 (Weeks 1–6)",
+                    "Trimester 2 (Weeks 7–12)",
+                    "Trimester 3 (Weeks 13–18)",
+                    "Temporary (TBA)",
+                ],
+                "Percent": [75, 5, 5, 5, 10],
+                "Amount ($)": [total_pot * 0.75, per_trimester_pot, per_trimester_pot, per_trimester_pot, special_pot],
+            }
+        )
+        breakdown["Amount ($)"] = breakdown["Amount ($)"].map(lambda x: f"${x:,.0f}")
+        st.markdown("### Breakdown")
+        st.dataframe(breakdown, use_container_width=True, hide_index=True)
+
+    st.caption("All values are placeholders. Replace constants with  data source when ready.")
+
 def _inject_css():
     st.markdown(
         """
@@ -53,58 +106,3 @@ def _donut_chart(labels, values, title="Prize Distribution"):
     ax.set(aspect="equal", title=title)
     ax.legend(wedges, labels, loc="center left", bbox_to_anchor=(1, 0.5))
     st.pyplot(fig, use_container_width=False)
-
-# ----------------------------
-# Page
-# ----------------------------
-def prizes_page():
-    _inject_css()
-    st.title("Prizes")
-
-    # KPI Row
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: _kpi("Number of Players", f"{NUM_PLAYERS}")
-    with c2: _kpi("Total Prize Pot", f"${TOTAL_POT:,.0f}")
-    with c3: _kpi("Trimester Prize (each)", f"${PER_TRIMESTER_POT:,.0f}")
-    with c4: _kpi("Temporary Prize Pot", f"${SPECIAL_POT:,.0f}")
-
-    st.divider()
-
-    # Donut + Breakdown
-    left, right = st.columns([1, 1])
-    with left:
-        labels = [
-            f"Season Overall ({int(PCT_OVERALL*100)}%)",
-            f"Trimester 1 ({int(PCT_TRIMESTER*100)}%)",
-            f"Trimester 2 ({int(PCT_TRIMESTER*100)}%)",
-            f"Trimester 3 ({int(PCT_TRIMESTER*100)}%)",
-            f"Temporary ({int(PCT_SPECIAL*100)}%)",
-        ]
-        values = [
-            TOTAL_POT * PCT_OVERALL,
-            PER_TRIMESTER_POT,
-            PER_TRIMESTER_POT,
-            PER_TRIMESTER_POT,
-            SPECIAL_POT,
-        ]
-        _donut_chart(labels, values, title="Prize Distribution")
-
-    with right:
-        breakdown = pd.DataFrame(
-            {
-                "Bucket": [
-                    "Season Overall (Top 3)",
-                    "Trimester 1 (Weeks 1–6)",
-                    "Trimester 2 (Weeks 7–12)",
-                    "Trimester 3 (Weeks 13–18)",
-                    "Temporary (TBA)",
-                ],
-                "Percent": [75, 5, 5, 5, 10],
-                "Amount ($)": [TOTAL_POT * 0.75, PER_TRIMESTER_POT, PER_TRIMESTER_POT, PER_TRIMESTER_POT, SPECIAL_POT],
-            }
-        )
-        breakdown["Amount ($)"] = breakdown["Amount ($)"].map(lambda x: f"${x:,.0f}")
-        st.markdown("### Breakdown")
-        st.dataframe(breakdown, use_container_width=True, hide_index=True)
-
-    st.caption("All values are placeholders. Replace constants with  data source when ready.")
