@@ -5,7 +5,7 @@ import numpy as np
 # local imports
 from src.utils import calculate_week, load_yaml
 
-def weekly_view_page(app_config: dict):
+def matchups_and_spreads_page(app_config: dict):
     """
     Displays weekly matchups in a clean, compact table (no scroll box).
     """
