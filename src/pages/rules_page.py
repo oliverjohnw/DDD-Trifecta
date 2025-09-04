@@ -70,8 +70,8 @@ def rules_page():
                 <li>🏁 <b>1 Survivor pick</b> per week — <i>cannot reuse a team all season</i>.</li>
                 <li>📈 <b>5 Spread picks</b> per week:
                   <ul>
-                    <li>4 picks worth <b>1 point</b> each</li>
                     <li>1 “confident” pick worth <b>2 points</b></li>
+                    <li>4 picks worth <b>1 point</b> each</li>
                   </ul>
                 </li>
                 <li>🏁 <b>1 Email picks to <i>dddtrifecta@gmail.com</i>.</li>
