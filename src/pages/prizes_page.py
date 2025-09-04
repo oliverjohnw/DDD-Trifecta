@@ -28,17 +28,16 @@ def prizes_page(app_config: dict):
     special_pot = total_pot * PCT_SPECIAL
 
     # calculate season prizes
-    if num_players <= 40:
-        first = 0.6
-        second = 0.25
-        third = 0.1
-        fourth = 0.05
-    elif (num_players > 40) & (num_players <= 50):
-        first = 0.5
-        second = 0.22
-        third = 0.13
-        fourth = 0.09
-        fifth = 0.06
+    first = 0.4
+    second = 0.18
+    third = 0.11
+    fourth = 0.08
+    fifth = 0.06
+    sixth = 0.04
+    seventh = 0.04
+    eighth = 0.03
+    ninth = 0.03
+    tenth = 0.03
 
     # KPI Row
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -78,18 +77,18 @@ def prizes_page(app_config: dict):
 
         # ---------- Season payouts ----------
         season_rows = [
-            ("First Place",  first,  season_pot * first),
-            ("Second Place", second, season_pot * second),
-            ("Third Place",  third,  season_pot * third),
-            ("Fourth Place", fourth, season_pot * fourth),
+            ("1st Place",  first,  season_pot * first),
+            ("2nd Place", second, season_pot * second),
+            ("3rd Place",  third,  season_pot * third),
+            ("4th Place", fourth, season_pot * fourth),
+            ("5th Place",  fifth,  season_pot * fifth),
+            ("6th Place", sixth, season_pot * sixth),
+            ("7th Place",  seventh,  season_pot * seventh),
+            ("8th Place", eighth, season_pot * eighth),
+            ("9th Place",  ninth,  season_pot * ninth),
+            ("10th Place", tenth, season_pot * tenth),
         ]
         season_df = pd.DataFrame(season_rows, columns=["Bucket", "Percent", "Amount ($)"])
-
-        # totals row for the season table
-        season_total_pct = sum([first, second, third, fourth])
-        season_total_amt = season_df["Amount ($)"].sum()
-
-        season_df.loc[len(season_df)] = ["Total", season_total_pct, season_total_amt]
 
         # format columns
         season_df["Percent"]   = season_df["Percent"].map(fmt_pct)
@@ -134,36 +133,6 @@ def prizes_page(app_config: dict):
                 "Amount ($)": st.column_config.TextColumn(width=120),
             },
         )
-    #     breakdown = pd.DataFrame(
-    #         {
-    #             "Bucket": [
-    #                 "First Place (Season)",
-    #                 "Second Place (Season)",
-    #                 "Third Place (Season)",
-    #                 "Fourth Place (Season)",
-    #                 "Trimester 1 (Weeks 1–6)",
-    #                 "Trimester 2 (Weeks 7–12)",
-    #                 "Trimester 3 (Weeks 13–18)",
-    #                 "Special/Booby Prize",
-    #             ],
-    #             "Percent": [first, second, third, fourth, 5, 5, 5, 10],
-    #             "Amount ($)": [
-    #                            (total_pot * 0.75) * first, 
-    #                            (total_pot * 0.75) * second,
-    #                            (total_pot * 0.75) * third,
-    #                            (total_pot * 0.75) * fourth,
-    #                            per_trimester_pot, 
-    #                            per_trimester_pot, 
-    #                            per_trimester_pot, 
-    #                            special_pot
-    #                            ],
-    #         }
-    #     )
-    #     breakdown["Amount ($)"] = breakdown["Amount ($)"].map(lambda x: f"${x:,.0f}")
-    #     st.markdown("### Breakdown")
-    #     st.dataframe(breakdown, use_container_width=True, hide_index=True)
-
-    # st.caption("All values are placeholders. Replace constants with  data source when ready.")
 
 def _inject_css():
     st.markdown(

@@ -44,10 +44,18 @@ def rules_page():
         """
         <span class="badge note">Season: Weeks 1–18</span>
         <span class="badge good">Buy‑in: $100</span>
-        <span class="badge warn">Submission cutoff: 1 hour before kickoff</span>
+        <span class="badge warn">Submission cutoff: 1 hour before kickoff of first game selected</span>
         """,
         unsafe_allow_html=True,
     )
+
+    with open("docs/DDD_rules.pdf", "rb") as f:
+      st.download_button(
+          label="📄 Download Rules PDF",
+          data=f,
+          file_name="DDD Trifecta Pool Rules 2025.pdf",
+          mime="application/pdf"
+      )
 
     st.divider()
 
@@ -71,8 +79,8 @@ def rules_page():
               <div class="hr"></div>
               <span class="cap">Deadline</span><br/>
               Picks must be submitted at least <b>1 hour</b> before kickoff of the first game the player has selected.
-              Already‑started games are ineligible.
-
+              Games that have already started and/or finished are ineligible.<br/>
+              <span class="cap">Example</span><br/>
               For example, if the player is planning to use a Thursday Night Football game in their picks,
               they must supply <b>ALL</b> picks 1 hour prior to kickoff on Thursday night.
             </div>
@@ -89,9 +97,12 @@ def rules_page():
                   <ul>
                     <li>Survivor <b>win</b> → you earn the sum of your spread points.</li>
                     <li>Survivor <b>loss or tie</b> → <b>0 points</b> for the week.</li>
+                    <li>Maximum of 6 points for the week.</li>
                   </ul>
                 </li>
                 <li>⏳ Missed week → <b>0 points</b>.</li>
+                <li>❌ Selected survivor team already used → <b>0 points</b>.</li>
+                <li>❌ Survivor picks <b>cannot</b> be used as spread pick.</li>
               </ul>
             </div>
             """,
@@ -108,27 +119,13 @@ def rules_page():
             <li>🧮 <b>Total pot:</b> $100 × number of players</li>
             <li>🏆 <b>Distribution:</b>
               <ul>
-                <li>75% → Season overall (1st, 2nd, 3rd)</li>
+                <li>75% → Season overall (1st - 10th)</li>
                 <li>5% → Trimester 1 (Weeks 1–6)</li>
                 <li>5% → Trimester 2 (Weeks 7–12)</li>
                 <li>5% → Trimester 3 (Weeks 13–18)</li>
                 <li>10% → Special / Temporary (TBA)</li>
               </ul>
             </li>
-          </ul>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Tie rules & eligibility
-    st.markdown("#### Ties & Eligibility")
-    st.markdown(
-        """
-        <div class="card big">
-          <ul class="list-tight">
-            <li>🤝 Season-end ties → tied players <b>split the prize</b>.</li>
-            <li>🗓️ Trimester winners determined solely by points within each 6‑week window.</li>
           </ul>
         </div>
         """,

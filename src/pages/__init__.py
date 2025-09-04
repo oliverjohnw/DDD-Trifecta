@@ -1,5 +1,6 @@
 from .matchups_and_spreads_page import matchups_and_spreads_page
 from .picks_and_scores_page import picks_and_scores_page
 from .prizes_page import prizes_page
+from .remaining_picks_page import remaining_picks_page
 from .rules_page import rules_page
 from .standings_page import standings_page

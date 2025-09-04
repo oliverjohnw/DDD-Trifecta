@@ -178,4 +178,4 @@ def matchups_and_spreads_page(app_config: dict):
     with mid:
         st.caption("Note: All times are in Eastern Time.")
         st.markdown(f"<div class='matchups'>{styled.to_html()}</div>", unsafe_allow_html=True)
-        st.caption("Spreads are updated around **12 PM CT on Wednesdays**.")
+        st.caption("Spreads are updated around **1 PM Eastern Time on Thursday**.")

@@ -58,7 +58,7 @@ def picks_and_scores_page(app_config: dict):
             )
 
         with tabs[1]:
-            st.caption(f"Scoring breakdown.")
+            st.caption(f"Scores for week {week}.")
             st.dataframe(
                 score_data,
                 use_container_width=True,
