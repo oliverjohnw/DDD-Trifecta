@@ -39,8 +39,8 @@ def matchups_and_spreads_page(app_config: dict):
         "Spreads Not Released",
         np.where(
             sp < 0,
-            schedule_data["Home Team"] + " " + sp.round(1).astype(str),
-            schedule_data["Away Team"] + " " + (-sp).round(1).astype(str),
+            schedule_data["Away Team"] + " +" + (-sp).round(1).astype(str) + " | " + schedule_data["Home Team"] + " " + sp.round(1).astype(str),
+            schedule_data["Away Team"] + " " + (-sp).round(1).astype(str) + " | " + schedule_data["Home Team"] + " +" + sp.round(1).astype(str),
         ),
     )
 
