@@ -152,9 +152,26 @@ def _calculate_points(
         .sort_values(label, ascending=False)
     )
 
-    # add rank
-    scores["Rank"] = scores[label].rank(method="dense", ascending=False).astype(int)
-    scores = scores[["Rank", "Player", label]].sort_values(["Rank", "Player"])
+    # # add rank
+    # scores["Rank"] = scores[label].rank(method="dense", ascending=False).astype(int)
+    # scores = scores[["Rank", "Player", label]].sort_values(["Rank", "Player"])
+
+    # sort first by score (descending), then player (alphabetical)
+    scores = scores.sort_values(
+        [label, "Player"],
+        ascending=[False, True],
+        key=lambda col: col.str.lower() if col.name == "Player" else col
+    )
+
+    # assign rank with ties handled
+    scores["Rank"] = (
+        scores[label]
+        .rank(method="min", ascending=False)  # "min" ensures ties share the same rank
+        .astype(int)
+    )
+
+    # reorder columns
+    scores = scores[["Rank", "Player", label]]
 
     return scores
 
@@ -282,6 +299,20 @@ def _rank_badge(val: int) -> str:
     elif val == 2:
         cls = "badge-rank silver"
     elif val == 3:
+        cls = "badge-rank silver"
+    elif val == 4:
+        cls = "badge-rank silver"
+    elif val == 5:
+        cls = "badge-rank silver"
+    elif val == 6:
+        cls = "badge-rank bronze"
+    elif val == 7:
+        cls = "badge-rank bronze"
+    elif val == 8:
+        cls = "badge-rank bronze"
+    elif val == 9:
+        cls = "badge-rank bronze"
+    elif val == 10:
         cls = "badge-rank bronze"
     else:
         cls = "badge-rank"

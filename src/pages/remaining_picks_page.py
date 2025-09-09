@@ -33,8 +33,11 @@ def remaining_picks_page(app_config: dict):
                 st.error("Expected columns 'Player' and 'Survivor Pick' not found.")
                 return
 
-            players = sorted(score_data["Player"].dropna().unique().tolist())
-            selected_player = st.selectbox("Select player", players, index=0)
+            players = sorted(
+                score_data["Player"].dropna().unique().tolist(),
+                key=str.lower
+            )
+            selected_player = st.selectbox("Select player. (You can type in usernames).", players, index=0)
 
             # all picks for that player (skip None/blank), keep first occurrence order
             picks_series = (
@@ -46,10 +49,11 @@ def remaining_picks_page(app_config: dict):
         # unique while preserving order
         picks_unique = sorted(picks_series.drop_duplicates().tolist())
 
-        st.subheader(f"{selected_player}'s Used Survivor Teams")
-        if picks_unique:
-            st.write(", ".join(picks_unique))
-        else:
-            st.info("No Survivor picks recorded yet for this player.")
+        with mid:
+            st.subheader(f"{selected_player}'s Used Survivor Teams")
+            if picks_unique:
+                st.write(", ".join(picks_unique))
+            else:
+                st.info("No Survivor picks recorded yet for this player.")
     else:
         st.info("Survivor picks will update after week 1.")
