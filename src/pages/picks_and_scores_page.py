@@ -37,7 +37,15 @@ def picks_and_scores_page(app_config: dict):
         # ---- PICKS ----
         picks_cols = ["Survivor Pick", "2 Point Spread", "1 Point Spread (1)",
                       "1 Point Spread (2)", "1 Point Spread (3)", "1 Point Spread (4)"]
-        picks_data = scores.copy().sort_values(by="Player").set_index("Player").loc[:, picks_cols]
+        picks_data = (
+            scores.copy()
+            .sort_values(
+                by="Player",
+                key=lambda col: col.str.strip().str.lower()  # normalize for sorting
+            )
+            .set_index("Player")
+            .loc[:, picks_cols]
+        )
 
         # ---- SCORES ----
         score_cols = ["Total Points", "Survivor Point", "2 Point Spread Points",
