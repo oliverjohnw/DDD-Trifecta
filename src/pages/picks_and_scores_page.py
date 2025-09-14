@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 # local imports
 from src.utils import calculate_week
@@ -22,23 +24,26 @@ def picks_and_scores_page(app_config: dict):
         week_choice = st.selectbox("Select Week", weeks, index=current_week-1)
         week = int(week_choice[-1])
 
-    # try to load picks and scores
-    try:
-        weekly_scores_folder = app_config["output"]["weekly_scores_folder"]
-        weekly_scores_path = Path(weekly_scores_folder) / f"week_{week}_scores.csv"
-        scores = pd.read_csv(weekly_scores_path)
-    except:
-        scores = pd.DataFrame()
-        with mid:
-            st.title(f"Picks and scores not released yet.")
+    # check dates
+    ET = ZoneInfo("America/New_York")
+    first_sunday = datetime(2025, 9, 7, 13, 0, 0, tzinfo=ET)  # CHANGE THIS
+    picks_release_date = first_sunday + timedelta(weeks=week-1)
+    current_time = datetime.now(ET)
 
-    # display data
-    if not scores.empty:
-        # ---- PICKS ----
+    # load picks if after kickoff
+    if current_time > picks_release_date:
+
+        # load in picks data
+        sheet_id = app_config["data"]["picks"]["sheet_id"]
+        gid = app_config["data"]["picks"]["gid"][f"week{week}"]
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+        weekly_picks = pd.read_csv(url)
+
+        # format
         picks_cols = ["Survivor Pick", "2 Point Spread", "1 Point Spread (1)",
-                      "1 Point Spread (2)", "1 Point Spread (3)", "1 Point Spread (4)"]
-        picks_data = (
-            scores.copy()
+                    "1 Point Spread (2)", "1 Point Spread (3)", "1 Point Spread (4)"]
+        weekly_picks = (
+            weekly_picks.copy()
             .sort_values(
                 by="Player",
                 key=lambda col: col.str.strip().str.lower()  # normalize for sorting
@@ -46,11 +51,22 @@ def picks_and_scores_page(app_config: dict):
             .set_index("Player")
             .loc[:, picks_cols]
         )
+    else:
+        weekly_picks = pd.DataFrame()
 
-        # ---- SCORES ----
+    # load in scores data
+    try:
+        weekly_scores_folder = app_config["output"]["weekly_scores_folder"]
+        weekly_scores_path = Path(weekly_scores_folder) / f"week_{week}_scores.csv"
+        scores = pd.read_csv(weekly_scores_path)
+    except:
+        scores = pd.DataFrame()
+
+    # format if not empty
+    if not scores.empty:
         score_cols = ["Total Points", "Survivor Point", "2 Point Spread Points",
-                      "1 Point Spread (1) Points", "1 Point Spread (2) Points",
-                      "1 Point Spread (3) Points", "1 Point Spread (4) Points"]
+                    "1 Point Spread (1) Points", "1 Point Spread (2) Points",
+                    "1 Point Spread (3) Points", "1 Point Spread (4) Points"]
         score_data = (
             scores.copy()
             .sort_values(
@@ -61,19 +77,22 @@ def picks_and_scores_page(app_config: dict):
             .loc[:, score_cols]
         )
 
-        # (NEW) Separate views without changing data/logic
-        tabs = st.tabs(["Picks", "Scores"])
-
-        with tabs[0]:
+    # define tabs
+    tabs = st.tabs(["Picks", "Scores"])
+    with tabs[0]:
+        if not weekly_picks.empty:
             st.caption(f"Player selections for week {week}.")
             st.dataframe(
-                picks_data,
+                weekly_picks,
                 use_container_width=True,
-                height=min(420, 46 + 34 * len(picks_data)),
+                height=min(420, 46 + 34 * len(weekly_picks)),
                 column_config={c: st.column_config.Column(width=140) for c in picks_cols},
             )
+        else:
+            st.caption(f"Pick released at kickoff of Sunday games.")
 
-        with tabs[1]:
+    with tabs[1]:
+        if not scores.empty:
             st.caption(f"Scores for week {week}.")
             st.dataframe(
                 score_data,
@@ -89,6 +108,12 @@ def picks_and_scores_page(app_config: dict):
                     "1 Point Spread (4) Points": st.column_config.NumberColumn(format="%d", width=170),
                 },
             )
+        else:
+            st.caption(f"Scores released Tuesday morning.")
+
+
+
+    
     
 
 def _inject_css():
