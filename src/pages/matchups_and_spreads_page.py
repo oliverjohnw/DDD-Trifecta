@@ -18,7 +18,7 @@ def matchups_and_spreads_page(app_config: dict):
 
     with mid:
         st.title(f"Matchups and Spreads")
-        week_choice = st.selectbox("Select Week", weeks, index=1)
+        week_choice = st.selectbox("Select Week", weeks, index=2)
         week = int(week_choice[-1])
 
     # load schedule
