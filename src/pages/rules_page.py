@@ -44,7 +44,7 @@ def rules_page():
         """
         <span class="badge note">Season: Weeks 1–18</span>
         <span class="badge good">Buy‑in: $100</span>
-        <span class="badge warn">Submission cutoff: 1 hour before kickoff of first game selected</span>
+        <span class="badge warn">Submission cutoff: 1 hour before kickoff of noon games on Sunday</span>
         """,
         unsafe_allow_html=True,
     )
@@ -74,11 +74,11 @@ def rules_page():
                     <li>4 picks worth <b>1 point</b> each</li>
                   </ul>
                 </li>
-                <li>🏁 <b>1 Email picks to <i>dddtrifecta@gmail.com</i>.</li>
+                <li>🏁 <b>Email picks to <i>dddtrifecta@gmail.com</i>.</li>
               </ul>
               <div class="hr"></div>
               <span class="cap">Deadline</span><br/>
-              Picks must be submitted at least <b>1 hour</b> before kickoff of the first game the player has selected.
+              Picks must be submitted at least <b>1 hour</b> before kickoff of the noon games on Sunday.
               Games that have already started and/or finished are ineligible.<br/>
               <span class="cap">Example</span><br/>
               For example, if the player is planning to use a Thursday Night Football game in their picks,
