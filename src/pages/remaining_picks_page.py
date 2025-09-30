@@ -52,7 +52,9 @@ def remaining_picks_page(app_config: dict):
         with mid:
             st.subheader(f"{selected_player}'s Used Survivor Teams")
             if picks_unique:
-                st.write(", ".join(picks_unique))
+                for pick in picks_unique:
+                    st.write(f" - {pick}")
+                #    st.write(", ".join(picks_unique))
             else:
                 st.info("No Survivor picks recorded yet for this player.")
     else:
