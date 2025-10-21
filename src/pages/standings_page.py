@@ -3,7 +3,10 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-def standings_page(app_config: dict):
+# local imports
+from src.utils import calculate_week
+
+def standings_page(app_config: dict, overall_scores: pd.DataFrame):
     """
     Displays standings.
     
@@ -17,34 +20,6 @@ def standings_page(app_config: dict):
     """
     # styling
     _inject_css()
-
-    # load players
-    sheet_id = app_config["data"]["picks"]["sheet_id"]
-    gid = app_config["data"]["picks"]["gid"][f"player_pool"]
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-    player_pool = pd.read_csv(url)
-    players = player_pool["Players"]
-
-    # player scores path
-    weekly_scores_folder = Path(app_config["output"]["weekly_scores_folder"])
-
-    # overall scores
-    overall_scores = pd.DataFrame()
-
-    # load scores
-    for week in range(1,19):
-
-        # attempt to load scores
-        try:
-            score_data = pd.read_csv(weekly_scores_folder / f"week_{week}_scores.csv")
-            score_data = score_data.loc[:, ["Player", "Week", "Total Points", "Special"]]
-
-        # if scores haven't happened yet, make blank dataset with 0's
-        except:
-            score_data = pd.DataFrame({"Player": players, "Week": week, "Total Points": 0, "Special": 0})
-
-        # combine to overall scores
-        overall_scores = pd.concat([overall_scores, score_data], axis = 0)
 
     # calculate points
     overall_points = _calculate_points(overall_scores, "all")
