@@ -18,7 +18,7 @@ def matchups_and_spreads_page(app_config: dict):
 
     with mid:
         st.title(f"Matchups and Spreads")
-        week_choice = st.selectbox("Select Week", weeks, index=7)
+        week_choice = st.selectbox("Select Week", weeks, index=8)
         week = int(week_choice[-1])
 
     # load schedule
@@ -178,4 +178,4 @@ def matchups_and_spreads_page(app_config: dict):
     with mid:
         st.caption("Note: All times are in Eastern Time.")
         st.markdown(f"<div class='matchups'>{styled.to_html()}</div>", unsafe_allow_html=True)
-        st.caption("Spreads are updated around **1 PM Eastern Time on Thursday**.")
+        st.caption("Spreads are updated around **1:30 PM Eastern Time on Thursday**.")
