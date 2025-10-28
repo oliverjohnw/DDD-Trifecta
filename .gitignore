@@ -3,3 +3,4 @@ notebooks
 **__pycache__
 **temp.py
 **.vscode
+**.ipynb_checkpoints
