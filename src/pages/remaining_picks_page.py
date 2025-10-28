@@ -23,7 +23,7 @@ CHIP_CSS = """
 # -------------------------------------------------
 
 
-def remaining_picks_page(app_config: dict):
+def remaining_picks_page(app_config: dict, overall_scores: pd.DataFrame):
     """
     Displays Survivor: teams a player has USED and which are still AVAILABLE.
     """
@@ -34,41 +34,8 @@ def remaining_picks_page(app_config: dict):
     with mid:
         st.title("Remaining Picks")
 
-    current_week = calculate_week()
-
-    # ----- load all weekly score csvs -----
-    scores_folder = app_config["output"]["weekly_scores_folder"]
-    if not os.path.isdir(scores_folder):
-        st.info("Survivor picks will update after Week 1.")
-        return
-
-    @st.cache_data(show_spinner=False)
-    def _load_scores(folder: str) -> pd.DataFrame:
-        files = sorted(glob.glob(os.path.join(folder, "week_*_scores.csv")))
-        dfs = []
-        for f in files:
-            try:
-                df = pd.read_csv(f, dtype=str).fillna("")
-                dfs.append(df)
-            except Exception:
-                continue
-        if not dfs:
-            return pd.DataFrame()
-        out = pd.concat(dfs, ignore_index=True)
-        # normalize types/columns we need
-        for c in ["Player", "Survivor Pick", "Week"]:
-            if c not in out.columns:
-                out[c] = ""
-        # keep only necessary cols
-        return out[["Player", "Survivor Pick", "Week"]]
-
-    score_data = _load_scores(scores_folder)
-    if score_data.empty:
-        st.info("No score files found yet.")
-        return
-
     # players list (case-insensitive sort)
-    players = sorted(score_data["Player"].dropna().unique().tolist(), key=lambda s: s.strip().lower())
+    players = sorted(overall_scores["Player"].dropna().unique().tolist(), key=lambda s: s.strip().lower())
 
     with mid:
         selected_player = st.selectbox(
@@ -82,7 +49,7 @@ def remaining_picks_page(app_config: dict):
 
     # Filter + tidy
     df_player = (
-        score_data.loc[score_data["Player"] == selected_player, ["Week", "Survivor Pick"]]
+        overall_scores.loc[overall_scores["Player"] == selected_player, ["Week", "Survivor Pick"]]
         .copy()
     )
     # Normalize abbreviations
