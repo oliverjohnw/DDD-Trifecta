@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import re
 
 # local imports
 from src.utils import calculate_week, load_yaml
@@ -19,7 +20,7 @@ def matchups_and_spreads_page(app_config: dict):
     with mid:
         st.title(f"Matchups and Spreads")
         week_choice = st.selectbox("Select Week", weeks, index=8)
-        week = int(week_choice[-1])
+        week = int(re.search(r"\d+", week_choice).group())
 
     # load schedule
     sheet_id = app_config["data"]["games"]["sheet_id"]
