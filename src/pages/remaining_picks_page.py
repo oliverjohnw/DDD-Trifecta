@@ -2,6 +2,8 @@ import os
 import glob
 import pandas as pd
 import streamlit as st
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 # local imports
 from src.utils import calculate_week
@@ -63,6 +65,15 @@ def remaining_picks_page(app_config: dict, overall_scores: pd.DataFrame):
     df_player = df_player.sort_values("Week")
 
     used = [t for t in df_player["Survivor Pick"].dropna().tolist() if t]
+
+    # remove value if time is before kickoff time
+    current_week = calculate_week()
+    ET = ZoneInfo("America/New_York")
+    first_sunday = datetime(2025, 9, 7, 13, 0, 0, tzinfo=ET)  # CHANGE THIS if needed
+    picks_release_date = first_sunday + timedelta(weeks=current_week - 1)
+    current_time = datetime.now(ET)
+    if current_time < picks_release_date:
+        used = used[:-1]
     used_unique = []
     seen = set()
     for t in used:  # preserve first-use order
