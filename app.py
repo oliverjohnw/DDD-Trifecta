@@ -47,7 +47,7 @@ for i in range(1, week + 1):
 
     # combine
     overall_scores = pd.concat([overall_scores, weekly_scores], axis = 0)
-                                
+
 # PAGES
 # -----
 if choice == "Matchups and Spreads":

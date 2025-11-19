@@ -96,7 +96,7 @@ def picks_page(app_config: dict, overall_scores: pd.DataFrame):
                 scores_week["Total Points"]
                 .reindex(weekly_picks.index)
                 .fillna(0)
-                .astype(int)
+                .astype(float)
             )
 
         # --- styling (1 -> green, 0 -> red) ---
@@ -137,7 +137,7 @@ def picks_page(app_config: dict, overall_scores: pd.DataFrame):
             use_container_width=True,  # fills the table column only
             height=min(780, 46 + 34 * len(weekly_picks)),
             column_config={
-                "Total Points": st.column_config.NumberColumn(format="%d", width=90),
+                "Total Points": st.column_config.NumberColumn(format="%.1f", width=90),
                 "Survivor Pick": st.column_config.Column(width=90),
                 "2 Point Spread": st.column_config.Column(width=110),
                 "1 Point Spread (1)": st.column_config.Column(width=120),
