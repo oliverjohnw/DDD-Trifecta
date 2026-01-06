@@ -23,7 +23,7 @@ data:
       week15: "916404071"
       week16: "952409089"
       week17: "1156973399"
-      weel8: "1887905565"
+      week18: "1887905565"
 
 output:
   weekly_scores_folder: "artifacts/weekly_scores"

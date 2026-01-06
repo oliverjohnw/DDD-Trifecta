@@ -5,7 +5,7 @@ import pandas as pd
 from src.utils import load_yaml, calculate_week, fetch_csv
 from src.utils import determine_game_winners, calculate_weekly_scores
 from src.pages import matchups_and_spreads_page, standings_page, picks_page, remaining_picks_page
-from src.pages import prizes_page, rules_page, breakdown_page
+from src.pages import prizes_page, rules_page, breakdown_page, summary_page
 
 # load in script config
 app_config_path = "config/app_config.yaml"
@@ -19,7 +19,7 @@ st.set_page_config(page_title="DDD Trifecta 2025", page_icon="🏈", layout="wid
 # -------
 st.sidebar.title("🏈 DDD Trifecta 2025")
 st.sidebar.caption("Use the sidebar to navigate.")
-pages = ["Matchups and Spreads", "Standings", "Picks and Scores", "Breakdown", "Remaining Picks", "Prizes", "Rules"]
+pages = ["Summary", "Matchups and Spreads", "Standings", "Picks and Scores", "Breakdown", "Remaining Picks", "Prizes", "Rules"]
 choice = st.sidebar.selectbox("Select Page", pages)
 
 # CACLULATE WEEKLY SCORES
@@ -50,7 +50,9 @@ for i in range(1, week + 1):
 
 # PAGES
 # -----
-if choice == "Matchups and Spreads":
+if choice == "Summary":
+    summary_page(app_config, overall_scores)
+elif choice == "Matchups and Spreads":
     matchups_and_spreads_page(app_config)
 elif choice == "Standings":
     standings_page(app_config, overall_scores)

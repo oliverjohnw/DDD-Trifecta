@@ -5,3 +5,4 @@ from .prizes_page import prizes_page
 from .remaining_picks_page import remaining_picks_page
 from .rules_page import rules_page
 from .standings_page import standings_page
+from .summary_page import summary_page
